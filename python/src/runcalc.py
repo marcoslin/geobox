@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-#
+
 from geobox import GeoBoxEncoder, GeoPoint
+from geohash import Geostring
 
 locs = {
     'roma_piramide': {
@@ -20,6 +21,7 @@ locs = {
     }
 }
 
+print "### Geobox"
 for name, loc in locs.iteritems():
     gpoint = GeoPoint(latitude=loc['lat'], longitude=loc['lon'])
 
@@ -30,3 +32,8 @@ for name, loc in locs.iteritems():
     else:
         for gcode, box in gpoint.neighbors().iteritems():
             print " - near: %s" % gcode
+
+print "### Geohash"
+for name, loc in locs.iteritems():
+    gs = Geostring((loc['lon'], loc['lat']))
+    print "{0:14} {1}".format(name, gs)

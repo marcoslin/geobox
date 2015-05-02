@@ -1,0 +1,6 @@
+# Ignore python files
+*.pyc
+
+# Ignore test files
+test.py*
+
