@@ -10,33 +10,41 @@ class Geocode(object):
         self._gbox = None
         self.gcode, self._gbox_coord = self._calcGeocode(self.loc, self.depth)
 
-    def _boundRatio(self, position, bound):
+    def _findPosition(self, position, lbound, ubound):
         '''
-        Return a floating number from 0 to 1 representing the position in the bound.
-        * position(float): position in the bound
-        * bound(tuple): lower, upper bound
+        For given position, compare it to the mid point between lower bound (lbound) and
+        upper bound (ubound).  If after mid point, return 1 and set new lower bound as
+        mid point.  Otherwise return 0 and set upper bound as mid point.
         '''
-        return (position - bound[0])/float(bound[1]-bound[0])
+        mid = (lbound + ubound) / 2.0
+        if position > mid:
+            bit = 1
+            lres = mid
+            ures = ubound
+        else:
+            bit = 0
+            lres = lbound
+            ures = mid
+
+        return bit, lres, ures
 
     def _calcGeocode(self, loc, depth):
-
-        minx = miny = 0.0
-        maxx = maxy = 1.0
-
-        maskDepth = (1 << depth)
+        '''
+        Find the postion (both lon and lat) if above or below mid point of the bound,
+        per _findPosition function.  Repeat for number of depth provided, producing
+        an integer with the size of depth * 2.
+        '''
         x, y = loc
+        x_lbound, x_ubound = self.LON_BOUND
+        y_lbound, y_ubound = self.LAT_BOUND
 
-        # Compute the percentage of x and y in perspective of the bound
-        x_part = long(self._boundRatio(x, self.LON_BOUND) * maskDepth)
-        y_part = long(self._boundRatio(y, self.LAT_BOUND) * maskDepth)
-
-        # Interleave x and y at the bit level.
-        # For x=1100 and y=1010, result would be: 11100100
-        # The result would be a number twice the size of depth
         result = 0
-        for i in xrange(depth):
-            x_bit = (x_part >> i) & 1
-            y_bit = (y_part >> i) & 1
+        for l in xrange(depth):
+            x_bit, x_lbound, x_ubound = self._findPosition(x, x_lbound, x_ubound)
+            y_bit, y_lbound, y_ubound = self._findPosition(y, y_lbound, y_ubound)
+
+            # Reverse the index
+            i = depth - l - 1
 
             # Calculate the interleave value
             result_index = i * 2
@@ -44,26 +52,17 @@ class Geocode(object):
             y_val = y_bit * 2 ** result_index
             result += y_val + x_val
 
-            # Calc box
-            box_index = (2 << i)
-            minx += float(y_bit)/box_index
-            miny += float(x_bit)/box_index
-
-        return result, (minx, miny, maxx, maxy)
+        return result, (x_lbound, y_lbound, x_ubound, y_ubound)
 
     @property
     def gbox(self):
-        depth = self.depth
         if self._gbox is None:
-            minx, miny, maxx, maxy = self._gbox_coord
-            print "# %s, %s, %s, %s" % (minx, miny, maxx, maxy)
-
-            maxx = minx + 1.0/(2L << (depth-1))
-            maxy = miny + 1.0/(2L << (depth-1))
-
-            minx, maxx = [self.LON_BOUND[0] + x * self.SIZE[0] for x in(minx, maxx)]
-            miny, maxy = [self.LON_BOUND[1] + y * self.SIZE[1] for y in(miny, maxy)]
-
-            self._gbox = tuple([round(x, 6) for x in minx, miny, maxx, maxy])
+            x_lbound, y_lbound, x_ubound, y_ubound = self._gbox_coord
+            self._gbox = {
+                'NW': (x_lbound, y_ubound),
+                'NE': (x_ubound, y_ubound),
+                'SW': (x_lbound, y_ubound),
+                'SE': (x_lbound, y_lbound)
+            }
 
         return self._gbox
