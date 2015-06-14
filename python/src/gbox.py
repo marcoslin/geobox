@@ -6,9 +6,9 @@ class Geocode(object):
 
     def __init__(self, lon, lat, depth=32):
         self.depth = depth
-        self.loc = (lon, lat)
+        self._gpoint = (lon, lat)
         self._gbox = None
-        self.gcode, self._gbox_coord = self._calcGeocode(self.loc, self.depth)
+        self._gcode, self._gbox_coord = self._calcGeocode(self._gpoint, self.depth)
 
     def _findPosition(self, position, lbound, ubound):
         '''
@@ -54,7 +54,12 @@ class Geocode(object):
 
         return result, (x_lbound, y_lbound, x_ubound, y_ubound)
 
-    @property
+    def gpoint(self):
+        return self._gpoint
+
+    def gcode(self):
+        return self._gcode
+
     def gbox(self):
         if self._gbox is None:
             x_lbound, y_lbound, x_ubound, y_ubound = self._gbox_coord
