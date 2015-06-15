@@ -6,7 +6,7 @@ import json
 
 class GeoBoxTestCase(unittest.TestCase):
     def setUp(self):
-        loc_file = '../res/location.json'
+        loc_file = '../../res/location.json'
         with open(loc_file, 'r') as fh:
             self.loc = json.load(fh)
     

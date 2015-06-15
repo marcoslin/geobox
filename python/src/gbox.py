@@ -1,3 +1,4 @@
+import struct
 
 class Geocode(object):
     LON_BOUND = (-180, 180)
@@ -38,7 +39,7 @@ class Geocode(object):
         x_lbound, x_ubound = self.LON_BOUND
         y_lbound, y_ubound = self.LAT_BOUND
 
-        result = 0
+        result = 0L
         for l in xrange(depth):
             x_bit, x_lbound, x_ubound = self._findPosition(x, x_lbound, x_ubound)
             y_bit, y_lbound, y_ubound = self._findPosition(y, y_lbound, y_ubound)
@@ -48,11 +49,18 @@ class Geocode(object):
 
             # Calculate the interleave value
             result_index = i * 2
-            x_val = x_bit * 2 ** (result_index+1)
-            y_val = y_bit * 2 ** result_index
-            result += y_val + x_val
+            
+            if x_bit:
+                result += 1 << (result_index+1)
+            
+            if y_bit:
+                result += 1 << result_index
+        
+        # Convert unsigned 64bit long into a signed version
+        u64int = struct.pack("Q", result)
+        s64int = struct.unpack("q", u64int)[0]
 
-        return result, (x_lbound, y_lbound, x_ubound, y_ubound)
+        return s64int, (x_lbound, y_lbound, x_ubound, y_ubound)
 
     def gpoint(self):
         return self._gpoint
